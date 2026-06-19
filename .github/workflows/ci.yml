@@ -1,0 +1,59 @@
+name: CI
+
+# Trigger: run this pipeline on every push to any branch,
+# and on every pull request targeting main.
+# This means broken code is caught before it reaches main.
+on:
+  push:
+    branches: [ "**" ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    name: Build, Test and Security Scan
+    runs-on: ubuntu-latest  # GitHub-hosted Ubuntu VM — free tier
+
+    steps:
+      # Step 1: Check out your code onto the VM
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Step 2: Install .NET 10 SDK on the VM
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      # Step 3: Restore NuGet packages
+      # Separate from build so you can see clearly if
+      # a package restore fails vs a compilation failure
+      - name: Restore dependencies
+        run: dotnet restore
+
+      # Step 4: Build the entire solution in Release mode
+      # Release mode catches issues that Debug mode sometimes misses
+      # --no-restore skips restore since we just did it above
+      - name: Build
+        run: dotnet build --no-restore --configuration Release
+
+      # Step 5: Run all tests
+      # --no-build skips rebuilding since we just built above
+      - name: Run tests
+        run: dotnet test --no-build --configuration Release --verbosity normal
+
+      # Step 6: Check for packages with known vulnerabilities
+      # This is what caught the Newtonsoft.Json issue earlier
+      # --vulnerable flag filters to only show vulnerable packages
+      # If any high severity vulnerability exists, we want the
+      # pipeline to fail — hence the exit code check
+      - name: Check for vulnerable packages
+        run: |
+          dotnet list package --vulnerable --include-transitive 2>&1 | tee vulnerable.txt
+          if grep -q "has the following vulnerable packages" vulnerable.txt; then
+            echo "❌ Vulnerable packages found"
+            cat vulnerable.txt
+            exit 1
+          else
+            echo "✅ No vulnerable packages found"
+          fi
