@@ -1,4 +1,11 @@
+using FinTrack.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
+
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddDbContext<FinTrackDbContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("FinTrackDb"))
+           .UseSnakeCaseNamingConvention());
 
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
