@@ -1,5 +1,6 @@
 using FinTrack.Application.Common.Interfaces;
 using FinTrack.Application.Common.Interfaces.Repositories;
+using FinTrack.Infrastructure.OpenBanking;
 using FinTrack.Infrastructure.Persistence;
 using FinTrack.Infrastructure.Persistence.Repositories;
 using FinTrack.Infrastructure.Security;
@@ -44,6 +45,14 @@ public static class DependencyInjection
         // Singleton means one instance created once and reused forever,
         // which is appropriate for stateless services.
         services.AddSingleton<ITokenEncryptionService, AesTokenEncryptionService>();
+
+        // Bind TrueLayer configuration section to strongly-typed options.
+        // Validates that required values are present at startup rather than
+        // failing silently at the first API call.
+        services.AddOptions<TrueLayerOptions>()
+            .Bind(configuration.GetSection(TrueLayerOptions.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
 
         return services;
     }
