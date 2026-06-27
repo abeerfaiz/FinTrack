@@ -21,6 +21,8 @@ public interface IOpenBankingClient
         string accountId,
         DateTimeOffset? from = null,
         CancellationToken cancellationToken = default);
+
+    Task<string> GetAuthorisationUrlAsync(string state, CancellationToken cancellationToken = default);
 }
 
 /// <summary>
