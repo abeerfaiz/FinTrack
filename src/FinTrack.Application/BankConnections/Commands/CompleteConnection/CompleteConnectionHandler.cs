@@ -1,0 +1,63 @@
+using FinTrack.Application.Common.Interfaces;
+using FinTrack.Application.Common.Interfaces.Repositories;
+using FinTrack.Application.Common.Models;
+using FinTrack.Domain.Entities;
+using MediatR;
+
+namespace FinTrack.Application.BankConnections.Commands.CompleteConnection;
+
+public class CompleteConnectionHandler
+    : IRequestHandler<CompleteConnectionCommand, Result<Guid>>
+{
+    private readonly IOpenBankingClient _openBankingClient;
+    private readonly ITokenEncryptionService _tokenEncryptionService;
+    private readonly IBankConnectionRepository _bankConnectionRepository;
+    //private readonly ICurrentUserService _currentUserService;
+    private readonly IUnitOfWork _unitOfWork;
+
+    public CompleteConnectionHandler(
+        IOpenBankingClient openBankingClient,
+        ITokenEncryptionService tokenEncryptionService,
+        IBankConnectionRepository bankConnectionRepository,
+        //ICurrentUserService currentUserService,
+        IUnitOfWork unitOfWork)
+    {
+        _openBankingClient = openBankingClient;
+        _tokenEncryptionService = tokenEncryptionService;
+        _bankConnectionRepository = bankConnectionRepository;
+        //_currentUserService = currentUserService;
+        _unitOfWork = unitOfWork;
+    }
+
+    public async Task<Result<Guid>> Handle(
+    CompleteConnectionCommand request,
+    CancellationToken cancellationToken)
+    {
+        // Temporary: extract userId from state parameter.
+        // In production this comes from ICurrentUserService (JWT claim).
+        var stateParts = request.State.Split(':');
+        if (stateParts.Length < 2 || !Guid.TryParse(stateParts[0], out var userId))
+            return Result.Failure<Guid>("Invalid state parameter.");
+
+        var tokenResult = await _openBankingClient
+            .ExchangeAuthCodeAsync(request.Code, cancellationToken);
+
+        var encryptedAccessToken = _tokenEncryptionService
+            .Encrypt(tokenResult.AccessToken);
+
+        var encryptedRefreshToken = _tokenEncryptionService
+            .Encrypt(tokenResult.RefreshToken);
+
+        var bankConnection = new BankConnection(
+            userId: userId,
+            providerId: "truelayer",
+            accessTokenEncrypted: encryptedAccessToken,
+            refreshTokenEncrypted: encryptedRefreshToken,
+            tokenExpiresAt: tokenResult.ExpiresAt);
+
+        await _bankConnectionRepository.AddAsync(bankConnection, cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return Result.Success(bankConnection.Id);
+    }
+}

@@ -54,6 +54,23 @@ public static class DependencyInjection
             .ValidateDataAnnotations()
             .ValidateOnStart();
 
+        // TrueLayer auth service — uses a named HttpClient pointed at the
+        // auth base URL. Separate from the data API HttpClient (Day 3)
+        // because they target different base URLs and have different
+        // resilience requirements (auth is not retried aggressively —
+        // a failed auth exchange should surface to the user, not silently retry).
+        services.AddHttpClient<TrueLayerAuthService>(client =>
+        {
+            client.BaseAddress = new Uri(
+                configuration["TrueLayer:AuthBaseUrl"]
+                ?? throw new InvalidOperationException("TrueLayer:AuthBaseUrl missing."));
+        });
+
+        // Register TrueLayerClient as the implementation of IOpenBankingClient.
+        // Scoped because it depends on TrueLayerAuthService which is HTTP-client
+        // lifecycle managed.
+        services.AddScoped<IOpenBankingClient, TrueLayerClient>();
+
         return services;
     }
 }
