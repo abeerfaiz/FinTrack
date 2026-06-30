@@ -7,6 +7,7 @@ using FinTrack.Infrastructure.Security;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace FinTrack.Infrastructure;
 
@@ -54,17 +55,38 @@ public static class DependencyInjection
             .ValidateDataAnnotations()
             .ValidateOnStart();
 
-        // TrueLayer auth service — uses a named HttpClient pointed at the
-        // auth base URL. Separate from the data API HttpClient (Day 3)
-        // because they target different base URLs and have different
-        // resilience requirements (auth is not retried aggressively —
-        // a failed auth exchange should surface to the user, not silently retry).
+        // TrueLayer auth HttpClient — pointed at the auth base URL
         services.AddHttpClient<TrueLayerAuthService>(client =>
         {
             client.BaseAddress = new Uri(
                 configuration["TrueLayer:AuthBaseUrl"]
                 ?? throw new InvalidOperationException("TrueLayer:AuthBaseUrl missing."));
         });
+
+        // Explicitly register TrueLayerAuthService so it can be injected
+        // into TrueLayerClient. Without this, the DI container knows how
+        // to create it for direct requests but not as a dependency of
+        // another service registered via AddHttpClient.
+        services.AddScoped<TrueLayerAuthService>();
+
+        // Named HttpClient for TrueLayer Data API — name matches what
+        // TrueLayerClient requests from IHttpClientFactory above.
+        services.AddHttpClient("TrueLayerDataApi", client =>
+        {
+            client.BaseAddress = new Uri(
+                configuration["TrueLayer:ApiBaseUrl"]
+                ?? throw new InvalidOperationException("TrueLayer:ApiBaseUrl missing."));
+        })
+        .AddPolicyHandler((serviceProvider, _) =>
+            TrueLayerResiliencePolicies.GetRetryPolicy(
+                serviceProvider.GetRequiredService<ILogger<TrueLayerClient>>()))
+        .AddPolicyHandler((serviceProvider, _) =>
+            TrueLayerResiliencePolicies.GetCircuitBreakerPolicy(
+                serviceProvider.GetRequiredService<ILogger<TrueLayerClient>>()));
+
+        // Register TrueLayerClient as the IOpenBankingClient implementation.
+        // Scoped — matches repository and DbContext lifetimes.
+        services.AddScoped<IOpenBankingClient, TrueLayerClient>();
 
         // Register TrueLayerClient as the implementation of IOpenBankingClient.
         // Scoped because it depends on TrueLayerAuthService which is HTTP-client
