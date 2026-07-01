@@ -19,7 +19,10 @@ Clean Architecture with four layers:
 
 ## Architecture Decision Records
 
+## Architecture Decision Records
+
 - [ADR-001: Use TrueLayer as Open Banking aggregator](docs/adr/ADR-001-truelayer-open-banking.md)
+- [ADR-002: Store TrueLayer tokens encrypted in PostgreSQL](docs/adr/ADR-002-token-storage-strategy.md)
 
 ## Local Development
 
