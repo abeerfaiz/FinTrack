@@ -56,6 +56,18 @@ public class AccountRepository : IAccountRepository
 
     public void Update(Account account)
     {
-        _context.Accounts.Update(account);
+        // Only attach + force Modified for entities coming from outside
+        // this DbContext's change tracker. If the account is already
+        // tracked (e.g. still in the Added state from an earlier
+        // AddAsync in the same unit of work), EF Core's change tracker
+        // already picks up property mutations on that same instance —
+        // calling Update() here would incorrectly flip Added to
+        // Modified, turning the pending INSERT into an UPDATE for a
+        // row that doesn't exist yet.
+        var entry = _context.Entry(account);
+        if (entry.State == EntityState.Detached)
+        {
+            _context.Accounts.Update(account);
+        }
     }
 }
