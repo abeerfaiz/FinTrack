@@ -1,9 +1,12 @@
 using FinTrack.Application.Common.Interfaces;
 using FinTrack.Application.Common.Interfaces.Repositories;
+using FinTrack.Infrastructure.BackgroundJobs;
 using FinTrack.Infrastructure.OpenBanking;
 using FinTrack.Infrastructure.Persistence;
 using FinTrack.Infrastructure.Persistence.Repositories;
 using FinTrack.Infrastructure.Security;
+using Hangfire;
+using Hangfire.PostgreSql;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -92,6 +95,34 @@ public static class DependencyInjection
         // Scoped because it depends on TrueLayerAuthService which is HTTP-client
         // lifecycle managed.
         services.AddScoped<IOpenBankingClient, TrueLayerClient>();
+
+
+        // Hangfire — PostgreSQL storage so jobs survive app restarts.
+        // The same connection string as the main DbContext — jobs and
+        // application data live in the same database for simplicity.
+        services.AddHangfire(config => config
+            .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+            .UseSimpleAssemblyNameTypeSerializer()
+            .UseRecommendedSerializerSettings()
+            .UsePostgreSqlStorage(options =>
+                options.UseNpgsqlConnection(
+                    configuration.GetConnectionString("FinTrackDb")
+                    ?? throw new InvalidOperationException(
+                        "FinTrackDb connection string missing."))));
+
+        // Hangfire server — the background thread that processes jobs.
+        // WorkerCount: 2 keeps resource usage low for a portfolio project.
+        // In production you'd scale this based on job throughput.
+        services.AddHangfireServer(options =>
+        {
+            options.WorkerCount = 2;
+            options.Queues = new[] { "default" };
+        });
+
+        // Register job classes so Hangfire's DI-aware job activator
+        // can construct them with their dependencies injected.
+        services.AddScoped<TransactionSyncJob>();
+        services.AddScoped<TokenRefreshJob>();
 
         return services;
     }

@@ -3,13 +3,15 @@ using FinTrack.API.Services;
 using FinTrack.Application.Common.Behaviours;
 using FinTrack.Application.Common.Interfaces;
 using FinTrack.Infrastructure;
+using FinTrack.Infrastructure.BackgroundJobs;
+using FinTrack.Infrastructure.Persistence;
 using FluentValidation;
+using Hangfire;
 using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
 using System.Text;
-using FinTrack.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -110,9 +112,27 @@ app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapControllers();
+// Hangfire dashboard — visual job monitoring at /hangfire
+// Restricted to development environment — never expose in production
+// without proper authentication.
+if (app.Environment.IsDevelopment())
+{
+    app.UseHangfireDashboard("/hangfire", new DashboardOptions
+    {
+        // In development, allow unauthenticated access to the dashboard.
+        // In production, replace with a proper authorization filter.
+        Authorization = new[] { new Hangfire.Dashboard.LocalRequestsOnlyAuthorizationFilter() }
+    });
+}
 
-// Health check endpoint
+app.MapControllers();
 app.MapHealthChecks("/health");
+
+// Register recurring jobs after the app is fully built and
+// DI is configured. Must be called after app.Build() —
+// RecurringJob.AddOrUpdate requires Hangfire's storage to be
+// initialised first.
+JobScheduler.RegisterRecurringJobs(
+    app.Services.GetRequiredService<ILogger<Program>>());
 
 app.Run();

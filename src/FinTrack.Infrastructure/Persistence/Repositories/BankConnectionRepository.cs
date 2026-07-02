@@ -48,6 +48,14 @@ public class BankConnectionRepository : IBankConnectionRepository
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<BankConnection>> GetActiveConnectionsAsync(
+    CancellationToken cancellationToken = default)
+    {
+        return await _context.BankConnections
+            .Where(bc => bc.Status == BankConnectionStatus.Active)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task AddAsync(
         BankConnection connection,
         CancellationToken cancellationToken = default)
