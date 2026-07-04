@@ -60,4 +60,17 @@ public class CategoriesController : ControllerBase
 
         return NoContent();
     }
+
+    [HttpPost("rules")]
+    public async Task<IActionResult> CreateRule(
+    [FromBody] CreateCategoryRuleCommand command,
+    CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(command, cancellationToken);
+
+        if (result.IsFailure)
+            return BadRequest(result.Error);
+
+        return Ok(new { id = result.Value });
+    }
 }

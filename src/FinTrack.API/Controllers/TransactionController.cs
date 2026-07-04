@@ -1,3 +1,4 @@
+using FinTrack.Application.Transactions.Commands.CategoriseTransaction;
 using FinTrack.Application.Transactions.Commands.SyncTransactions;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -37,4 +38,28 @@ public class TransactionsController : ControllerBase
 
         return Ok(result.Value);
     }
+
+    /// <summary>
+    /// Manually assign a category to a transaction.
+    /// Sets is_manually_categorised = true — auto-categorisation
+    /// will never overwrite this choice.
+    /// </summary>
+    [HttpPatch("{transactionId}/categorise")]
+    [AllowAnonymous] // temporary until Week 5
+    public async Task<IActionResult> Categorise(
+        Guid transactionId,
+        [FromBody] CategoriseTransactionRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(
+            new CategoriseTransactionCommand(transactionId, request.CategoryId),
+            cancellationToken);
+
+        if (result.IsFailure)
+            return BadRequest(result.Error);
+
+        return NoContent();
+    }
 }
+
+public record CategoriseTransactionRequest(Guid CategoryId);

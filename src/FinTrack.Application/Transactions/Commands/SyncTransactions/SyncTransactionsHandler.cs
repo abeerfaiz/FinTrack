@@ -19,6 +19,7 @@ public class SyncTransactionsHandler
     private readonly ITokenEncryptionService _tokenEncryptionService;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<SyncTransactionsHandler> _logger;
+    private readonly ICategoryRulesEngine _categoryRulesEngine;
 
     public SyncTransactionsHandler(
         IBankConnectionRepository bankConnectionRepository,
@@ -27,6 +28,7 @@ public class SyncTransactionsHandler
         IOpenBankingClient openBankingClient,
         ITokenEncryptionService tokenEncryptionService,
         IUnitOfWork unitOfWork,
+        ICategoryRulesEngine categoryRulesEngine,
         ILogger<SyncTransactionsHandler> logger)
     {
         _bankConnectionRepository = bankConnectionRepository;
@@ -35,6 +37,7 @@ public class SyncTransactionsHandler
         _openBankingClient = openBankingClient;
         _tokenEncryptionService = tokenEncryptionService;
         _unitOfWork = unitOfWork;
+        _categoryRulesEngine = categoryRulesEngine;
         _logger = logger;
     }
 
@@ -227,6 +230,19 @@ public class SyncTransactionsHandler
                         runningBalance: obTx.RunningBalance,
                         normalisedProviderTxId: obTx.NormalisedProviderTxId,
                         providerTransactionId: obTx.ProviderTransactionId);
+
+                    // Run auto-categorisation rules engine on every new transaction.
+                    // Returns null if no rule matches — transaction stays uncategorised.
+                    // is_manually_categorised stays false — automation can improve
+                    // the category later if the user adds a better rule.
+                    var matchedCategoryId = await _categoryRulesEngine.FindMatchAsync(
+                        connection.UserId,
+                        obTx.MerchantName,
+                        obTx.Description,
+                        cancellationToken);
+
+                    if (matchedCategoryId.HasValue)
+                        transaction.AssignCategory(matchedCategoryId.Value, isManual: false);
 
                     await _transactionRepository.AddAsync(transaction, cancellationToken);
                     transactionsInserted++;
