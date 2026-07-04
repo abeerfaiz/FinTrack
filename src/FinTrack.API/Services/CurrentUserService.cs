@@ -24,9 +24,10 @@ public class CurrentUserService : ICurrentUserService
             .FindFirstValue(ClaimTypes.NameIdentifier);
 
         if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
-            throw new UnauthorizedAccessException(
-                "No valid user identity found in the current request context. " +
-                "Ensure the endpoint is protected with [Authorize].");
+        {
+            // Temporary: return test user until JWT auth is implemented in Week 5
+            return Guid.Parse("00000000-0000-0000-0000-000000000001");
+        }
 
         return userId;
     }
