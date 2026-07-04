@@ -39,6 +39,7 @@ public static class DependencyInjection
         services.AddScoped<ICategoryRepository, CategoryRepository>();
         services.AddScoped<IBudgetRepository, BudgetRepository>();
         services.AddScoped<IBankConnectionRepository, BankConnectionRepository>();
+        services.AddScoped<ICategoryRuleRepository, CategoryRuleRepository>();
 
         // Unit of Work — same Scoped lifetime, same reasoning.
         services.AddScoped<IUnitOfWork, UnitOfWork>();
@@ -123,6 +124,8 @@ public static class DependencyInjection
         // can construct them with their dependencies injected.
         services.AddScoped<TransactionSyncJob>();
         services.AddScoped<TokenRefreshJob>();
+
+        services.AddScoped<ICategoryRulesEngine, CategoryRulesEngine>();
 
         return services;
     }
