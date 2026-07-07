@@ -9,7 +9,7 @@ namespace FinTrack.API.Controllers;
 
 [ApiController]
 [Route("api/spending")]
-[AllowAnonymous] // temporary until Week 5
+[Authorize]
 public class SpendingController : ControllerBase
 {
     private readonly IMediator _mediator;

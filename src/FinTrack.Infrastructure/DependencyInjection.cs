@@ -127,6 +127,9 @@ public static class DependencyInjection
 
         services.AddScoped<ICategoryRulesEngine, CategoryRulesEngine>();
 
+        services.AddScoped<IUserRepository, UserRepository>();
+        services.AddSingleton<IJwtService, JwtService>();
+
         return services;
     }
 }

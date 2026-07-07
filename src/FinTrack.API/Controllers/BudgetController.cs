@@ -8,7 +8,7 @@ namespace FinTrack.API.Controllers;
 
 [ApiController]
 [Route("api/budgets")]
-[AllowAnonymous] // temporary until Week 5
+[Authorize]
 public class BudgetsController : ControllerBase
 {
     private readonly IMediator _mediator;
