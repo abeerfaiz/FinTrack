@@ -9,7 +9,7 @@ namespace FinTrack.API.Controllers;
 
 [ApiController]
 [Route("api/categories")]
-[AllowAnonymous] // temporary until JWT auth implemented in Week 5
+[Authorize]
 public class CategoriesController : ControllerBase
 {
     private readonly IMediator _mediator;

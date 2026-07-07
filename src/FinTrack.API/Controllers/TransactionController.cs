@@ -24,7 +24,7 @@ public class TransactionsController : ControllerBase
     /// job handles automatic syncing every 6 hours.
     /// </summary>
     [HttpPost("sync/{bankConnectionId}")]
-    [AllowAnonymous] // temporary until JWT auth is fully implemented
+    [Authorize]
     public async Task<IActionResult> Sync(
         Guid bankConnectionId,
         CancellationToken cancellationToken)
@@ -45,7 +45,7 @@ public class TransactionsController : ControllerBase
     /// will never overwrite this choice.
     /// </summary>
     [HttpPatch("{transactionId}/categorise")]
-    [AllowAnonymous] // temporary until Week 5
+    [Authorize]
     public async Task<IActionResult> Categorise(
         Guid transactionId,
         [FromBody] CategoriseTransactionRequest request,
