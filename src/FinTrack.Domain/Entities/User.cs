@@ -13,7 +13,9 @@ public class User
 
     private readonly List<BankConnection> _bankConnections = new();
     public IReadOnlyList<BankConnection> BankConnections => _bankConnections;
-
+    public string? RefreshToken { get; private set; }
+    public DateTimeOffset? RefreshTokenExpiresAt { get; private set; }
+    
     private User() { }
 
     public User(string email, string passwordHash, string displayName)
@@ -48,5 +50,30 @@ public class User
 
         PasswordHash = newPasswordHash;
         UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    public void SetRefreshToken(string refreshToken, DateTimeOffset expiresAt)
+    {
+        RefreshToken = refreshToken;
+        RefreshTokenExpiresAt = expiresAt;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    public void RevokeRefreshToken()
+    {
+        RefreshToken = null;
+        RefreshTokenExpiresAt = null;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    public bool IsRefreshTokenValid(string token)
+    {
+        var hash = Convert.ToBase64String(
+            System.Security.Cryptography.SHA256.HashData(
+                System.Text.Encoding.UTF8.GetBytes(token)));
+
+        return RefreshToken == hash
+            && RefreshTokenExpiresAt.HasValue
+            && RefreshTokenExpiresAt.Value > DateTimeOffset.UtcNow;
     }
 }

@@ -37,4 +37,21 @@ public class UserRepository : IUserRepository
     {
         await _context.Users.AddAsync(user, cancellationToken);
     }
+
+    public void Update(User user)
+    {
+        var entry = _context.Entry(user);
+        if (entry.State == EntityState.Detached)
+            _context.Users.Update(user);
+    }
+
+    public async Task<User?> GetByRefreshTokenHashAsync(
+        string tokenHash,
+        CancellationToken cancellationToken = default)
+    {
+        return await _context.Users
+            .FirstOrDefaultAsync(
+                u => u.RefreshToken == tokenHash,
+                cancellationToken);
+    }
 }

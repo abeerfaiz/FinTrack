@@ -9,6 +9,7 @@ using FluentValidation;
 using Hangfire;
 using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using Serilog;
@@ -111,6 +112,23 @@ builder.Services.AddSwaggerGen(options =>
 builder.Services.AddHealthChecks()
     .AddDbContextCheck<FinTrackDbContext>();
 
+
+// Rate limiting — protects auth endpoints from brute force attacks.
+// Fixed window: max 5 requests per minute per IP address on auth endpoints.
+// After 5 failed attempts in a minute, subsequent requests get 429 Too Many Requests.
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddFixedWindowLimiter("auth", config =>
+    {
+        config.PermitLimit = 5;
+        config.Window = TimeSpan.FromMinutes(1);
+        config.QueueProcessingOrder = System.Threading.RateLimiting.QueueProcessingOrder.OldestFirst;
+        config.QueueLimit = 0;
+    });
+
+    options.RejectionStatusCode = 429;
+});
+
 var app = builder.Build();
 
 // ── Middleware pipeline — order is critical ───────────────────────────────────
@@ -130,6 +148,7 @@ app.UseHttpsRedirection();
 // before you can decide what they're allowed to do.
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter(); // after auth so authenticated requests are still rate limited
 
 // Hangfire dashboard — visual job monitoring at /hangfire
 // Restricted to development environment — never expose in production
