@@ -1,6 +1,7 @@
 using FinTrack.Application.Common.Interfaces;
 using FinTrack.Application.Common.Models;
 using MediatR;
+using System.Security.Cryptography;
 
 namespace FinTrack.Application.BankConnections.Commands.InitiateConnection;
 
@@ -19,21 +20,24 @@ public class InitiateConnectionHandler
     }
 
     public async Task<Result<InitiateConnectionResult>> Handle(
-    InitiateConnectionCommand request,
-    CancellationToken cancellationToken)
+        InitiateConnectionCommand request,
+        CancellationToken cancellationToken)
     {
-        // Temporary: use a fixed test user ID until auth is implemented.
-        // In production, state encodes the authenticated user's ID
-        // so the callback can associate the bank connection correctly
-        // without requiring a JWT in the redirect.
-        var testUserId = Guid.Parse("00000000-0000-0000-0000-000000000001");
+        // Get the real authenticated user's ID from JWT claim
+        // No more hardcoded test user GUID
+        var userId = _currentUserService.GetCurrentUserId();
 
+        // Generate cryptographically random state component
+        // State = userId:randomPart
+        // Callback decodes userId from state to associate the
+        // bank connection with the right user — no JWT in callback
         var randomPart = Convert.ToBase64String(
-            System.Security.Cryptography.RandomNumberGenerator.GetBytes(16))
-            .Replace("+", "-").Replace("/", "_").Replace("=", "");
+            RandomNumberGenerator.GetBytes(16))
+            .Replace("+", "-")
+            .Replace("/", "_")
+            .Replace("=", "");
 
-        // Encode userId into state: "userId:randomPart"
-        var state = $"{testUserId}:{randomPart}";
+        var state = $"{userId}:{randomPart}";
 
         var authorisationUrl = await _openBankingClient
             .GetAuthorisationUrlAsync(state, cancellationToken);
