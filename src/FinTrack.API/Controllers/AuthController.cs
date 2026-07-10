@@ -1,8 +1,10 @@
 using FinTrack.Application.Auth.Commands.Login;
+using FinTrack.Application.Auth.Commands.RefreshToken;
 using FinTrack.Application.Auth.Commands.Register;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace FinTrack.API.Controllers;
 
@@ -18,10 +20,8 @@ public class AuthController : ControllerBase
         _mediator = mediator;
     }
 
-    /// <summary>
-    /// Register a new user account.
-    /// </summary>
     [HttpPost("register")]
+    [EnableRateLimiting("auth")]
     public async Task<IActionResult> Register(
         [FromBody] RegisterUserCommand command,
         CancellationToken cancellationToken)
@@ -34,12 +34,24 @@ public class AuthController : ControllerBase
         return Ok(new { userId = result.Value });
     }
 
-    /// <summary>
-    /// Login and receive a JWT access token.
-    /// </summary>
     [HttpPost("login")]
+    [EnableRateLimiting("auth")]
     public async Task<IActionResult> Login(
         [FromBody] LoginCommand command,
+        CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(command, cancellationToken);
+
+        if (result.IsFailure)
+            return Unauthorized(new { error = result.Error });
+
+        return Ok(result.Value);
+    }
+
+    [HttpPost("refresh")]
+    [EnableRateLimiting("auth")]
+    public async Task<IActionResult> Refresh(
+        [FromBody] RefreshTokenCommand command,
         CancellationToken cancellationToken)
     {
         var result = await _mediator.Send(command, cancellationToken);

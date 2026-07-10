@@ -45,4 +45,12 @@ public class JwtService : IJwtService
 
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
+
+    public string GenerateRefreshToken()
+    {
+        // Cryptographically random 64-byte token encoded as Base64
+        // Far more secure than a simple GUID
+        return Convert.ToBase64String(
+            System.Security.Cryptography.RandomNumberGenerator.GetBytes(64));
+    }
 }

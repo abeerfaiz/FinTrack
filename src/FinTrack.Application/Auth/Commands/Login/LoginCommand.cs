@@ -10,4 +10,5 @@ public record LoginCommand(
 public record LoginResult(
     Guid UserId,
     string Email,
-    string AccessToken);
+    string AccessToken,
+    string RefreshToken);

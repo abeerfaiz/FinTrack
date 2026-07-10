@@ -1,7 +1,5 @@
 using FinTrack.Application.BankConnections.Commands.CompleteConnection;
 using FinTrack.Application.BankConnections.Commands.InitiateConnection;
-using FinTrack.Application.Common.Interfaces;
-using FinTrack.Application.Common.Interfaces.Repositories;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -20,11 +18,6 @@ public class BankConnectionsController : ControllerBase
         _mediator = mediator;
     }
 
-    /// <summary>
-    /// Returns a TrueLayer authorisation URL for the user to be
-    /// redirected to. The client stores the returned state value
-    /// and sends it back in the callback to prevent CSRF.
-    /// </summary>
     [HttpGet("initiate")]
     public async Task<IActionResult> Initiate(CancellationToken cancellationToken)
     {
@@ -39,13 +32,12 @@ public class BankConnectionsController : ControllerBase
     }
 
     /// <summary>
-    /// TrueLayer redirects here after the user authenticates with
-    /// their bank. Exchanges the auth code for tokens and persists
-    /// the bank connection. In a real flow the client would verify
-    /// the state parameter matches what it stored from /initiate.
+    /// TrueLayer redirects here after user authenticates with their bank.
+    /// AllowAnonymous because TrueLayer's redirect carries no JWT —
+    /// user identity is recovered from the state parameter instead.
     /// </summary>
     [HttpGet("callback")]
-    [AllowAnonymous] // TrueLayer redirect — no JWT in this request
+    [AllowAnonymous]
     public async Task<IActionResult> Callback(
         [FromQuery] string code,
         [FromQuery] string state,
@@ -61,8 +53,6 @@ public class BankConnectionsController : ControllerBase
         if (result.IsFailure)
             return BadRequest(result.Error);
 
-        // In production this would redirect to your frontend with
-        // a success indicator. For now return the connection ID.
         return Ok(new { bankConnectionId = result.Value });
     }
 }
