@@ -1,5 +1,6 @@
 using FinTrack.Application.Transactions.Commands.CategoriseTransaction;
 using FinTrack.Application.Transactions.Commands.SyncTransactions;
+using FinTrack.Application.Transactions.Queries.GetTransactions;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -19,12 +20,36 @@ public class TransactionsController : ControllerBase
     }
 
     /// <summary>
-    /// Manually trigger a transaction sync for a specific bank connection.
-    /// Useful for the "Sync now" button in the UI — the Hangfire recurring
-    /// job handles automatic syncing every 6 hours.
+    /// Get paginated transactions for the authenticated user.
+    /// Filterable by account, category, date range, and status.
+    /// Ordered by transaction date descending — most recent first.
+    /// </summary>
+    [HttpGet]
+    public async Task<IActionResult> GetTransactions(
+        [FromQuery] Guid? accountId = null,
+        [FromQuery] Guid? categoryId = null,
+        [FromQuery] DateOnly? from = null,
+        [FromQuery] DateOnly? to = null,
+        [FromQuery] string? status = null,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _mediator.Send(
+            new GetTransactionsQuery(
+                accountId, categoryId, from, to, status, page, pageSize),
+            cancellationToken);
+
+        if (result.IsFailure)
+            return BadRequest(result.Error);
+
+        return Ok(result.Value);
+    }
+
+    /// <summary>
+    /// Manually trigger a transaction sync for a bank connection.
     /// </summary>
     [HttpPost("sync/{bankConnectionId}")]
-    [Authorize]
     public async Task<IActionResult> Sync(
         Guid bankConnectionId,
         CancellationToken cancellationToken)
@@ -41,11 +66,9 @@ public class TransactionsController : ControllerBase
 
     /// <summary>
     /// Manually assign a category to a transaction.
-    /// Sets is_manually_categorised = true — auto-categorisation
-    /// will never overwrite this choice.
+    /// Sets is_manually_categorised = true — auto rules never overwrite.
     /// </summary>
     [HttpPatch("{transactionId}/categorise")]
-    [Authorize]
     public async Task<IActionResult> Categorise(
         Guid transactionId,
         [FromBody] CategoriseTransactionRequest request,

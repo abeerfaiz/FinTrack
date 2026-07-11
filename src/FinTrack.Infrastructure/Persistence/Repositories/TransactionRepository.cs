@@ -85,4 +85,52 @@ public class TransactionRepository : ITransactionRepository
     {
         _context.Transactions.Update(transaction);
     }
+
+    public async Task<(IReadOnlyList<Transaction> Items, int TotalCount)> GetPagedAsync(
+    Guid userId,
+    Guid? accountId = null,
+    Guid? categoryId = null,
+    DateOnly? from = null,
+    DateOnly? to = null,
+    string? status = null,
+    int page = 1,
+    int pageSize = 20,
+    CancellationToken cancellationToken = default)
+    {
+        var query = _context.Transactions
+            .Where(t => t.UserId == userId && !t.IsArchived);
+
+        if (accountId.HasValue)
+            query = query.Where(t => t.AccountId == accountId.Value);
+
+        if (categoryId.HasValue)
+            query = query.Where(t => t.UserCategoryId == categoryId.Value);
+
+        if (from.HasValue)
+        {
+            var fromDateTime = from.Value.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+            query = query.Where(t => t.TransactionDate >= fromDateTime);
+        }
+
+        if (to.HasValue)
+        {
+            var toDateTime = to.Value.ToDateTime(TimeOnly.MaxValue, DateTimeKind.Utc);
+            query = query.Where(t => t.TransactionDate <= toDateTime);
+        }
+
+        if (!string.IsNullOrEmpty(status) &&
+            Enum.TryParse<TransactionStatus>(status, ignoreCase: true, out var txStatus))
+            query = query.Where(t => t.Status == txStatus);
+
+        // Count before pagination — needed for TotalPages calculation
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var items = await query
+            .OrderByDescending(t => t.TransactionDate)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+
+        return (items, totalCount);
+    }
 }

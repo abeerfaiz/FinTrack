@@ -36,4 +36,15 @@ public interface ITransactionRepository
     /// repository interface shape across all entities.
     /// </summary>
     void Update(Transaction transaction);
+
+    Task<(IReadOnlyList<Transaction> Items, int TotalCount)> GetPagedAsync(
+    Guid userId,
+    Guid? accountId = null,
+    Guid? categoryId = null,
+    DateOnly? from = null,
+    DateOnly? to = null,
+    string? status = null,
+    int page = 1,
+    int pageSize = 20,
+    CancellationToken cancellationToken = default);
 }
