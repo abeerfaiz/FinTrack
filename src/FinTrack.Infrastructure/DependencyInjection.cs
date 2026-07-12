@@ -40,6 +40,8 @@ public static class DependencyInjection
         services.AddScoped<IBudgetRepository, BudgetRepository>();
         services.AddScoped<IBankConnectionRepository, BankConnectionRepository>();
         services.AddScoped<ICategoryRuleRepository, CategoryRuleRepository>();
+        services.AddScoped<IDirectDebitRepository, DirectDebitRepository>();
+        services.AddScoped<IStandingOrderRepository, StandingOrderRepository>();
 
         // Unit of Work — same Scoped lifetime, same reasoning.
         services.AddScoped<IUnitOfWork, UnitOfWork>();
