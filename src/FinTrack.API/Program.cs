@@ -88,6 +88,19 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
+    options.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "FinTrack API",
+        Version = "v1",
+        Description = "Personal finance API connecting to UK bank accounts via Open Banking (TrueLayer). Built with .NET 10, Clean Architecture, and CQRS."
+    });
+
+    // Include XML comments from controllers
+    var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+    options.IncludeXmlComments(xmlPath);
+
+    // JWT Bearer auth
     var securityScheme = new OpenApiSecurityScheme
     {
         Name = "Authorization",

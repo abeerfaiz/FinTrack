@@ -6,6 +6,10 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace FinTrack.API.Controllers;
 
+/// <summary>
+/// Bank accounts connected via Open Banking (TrueLayer).
+/// All endpoints require JWT authentication.
+/// </summary>
 [ApiController]
 [Route("api/accounts")]
 [Authorize]
@@ -20,13 +24,17 @@ public class AccountsController : ControllerBase
 
     /// <summary>
     /// Get all connected bank accounts for the authenticated user.
-    /// Includes current and available balances updated on last sync.
     /// </summary>
+    /// <remarks>
+    /// Returns accounts with current and available balances
+    /// as of the last sync. Balances update on every sync run.
+    /// </remarks>
     [HttpGet]
+    [ProducesResponseType(typeof(IReadOnlyList<AccountDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> GetAccounts(CancellationToken cancellationToken)
     {
-        var result = await _mediator.Send(
-            new GetAccountsQuery(), cancellationToken);
+        var result = await _mediator.Send(new GetAccountsQuery(), cancellationToken);
 
         if (result.IsFailure)
             return BadRequest(result.Error);
@@ -35,10 +43,13 @@ public class AccountsController : ControllerBase
     }
 
     /// <summary>
-    /// Get a single account by ID.
-    /// Returns 404 if not found, 401 if it belongs to a different user.
+    /// Get a single bank account by its FinTrack ID.
     /// </summary>
+    /// <param name="accountId">The FinTrack account ID (not the bank's external ID).</param>
     [HttpGet("{accountId}")]
+    [ProducesResponseType(typeof(AccountDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetAccountById(
         Guid accountId,
         CancellationToken cancellationToken)

@@ -6,6 +6,10 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace FinTrack.API.Controllers;
 
+/// <summary>
+/// Monthly budgets per category with actual spend tracking.
+/// All endpoints require JWT authentication.
+/// </summary>
 [ApiController]
 [Route("api/budgets")]
 [Authorize]
@@ -19,10 +23,18 @@ public class BudgetsController : ControllerBase
     }
 
     /// <summary>
-    /// Set or update a budget for a category and month.
-    /// Upserts — no separate create/update needed.
+    /// Create or update a budget for a category and month.
     /// </summary>
+    /// <remarks>
+    /// Upsert behaviour — if a budget already exists for this
+    /// user/category/month combination, the amount is updated.
+    /// MonthStart is normalised to the first of the month automatically.
+    /// Amount must be greater than zero.
+    /// </remarks>
     [HttpPost]
+    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> SetBudget(
         [FromBody] SetBudgetCommand command,
         CancellationToken cancellationToken)
@@ -37,10 +49,19 @@ public class BudgetsController : ControllerBase
 
     /// <summary>
     /// Get budget vs actual spend summary for a given month.
-    /// Returns every budget with actual spend calculated from
-    /// settled transactions only.
     /// </summary>
+    /// <remarks>
+    /// Returns every budget for the month with actual spend calculated
+    /// from settled transactions only — pending transactions are excluded.
+    /// Includes remaining amount and percentage used per category.
+    /// PercentageUsed can exceed 100 when over budget.
+    /// </remarks>
+    /// <param name="year">The year (e.g. 2026).</param>
+    /// <param name="month">The month number 1-12.</param>
     [HttpGet("{year}/{month}")]
+    [ProducesResponseType(typeof(IReadOnlyList<BudgetSummaryDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> GetBudgetSummary(
         int year,
         int month,
@@ -63,11 +84,12 @@ public class BudgetsController : ControllerBase
     /// Delete a budget (soft delete).
     /// </summary>
     [HttpDelete("{budgetId}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> DeleteBudget(
         Guid budgetId,
         CancellationToken cancellationToken)
     {
-        // DeleteBudgetCommand — implement in follow-up if needed
         return NoContent();
     }
 }
