@@ -12,7 +12,29 @@ on:
 jobs:
   build-and-test:
     name: Build, Test and Security Scan
-    runs-on: ubuntu-latest  # GitHub-hosted Ubuntu VM — free tier
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: fintrack_user
+          POSTGRES_PASSWORD: fintrack_pass
+          POSTGRES_DB: fintrack
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      ConnectionStrings__FinTrackDb: "Host=localhost;Port=5432;Database=fintrack;Username=fintrack_user;Password=fintrack_pass"
+      Jwt__Key: "ci-test-jwt-key-that-is-at-least-32-characters-long"
+      Jwt__Issuer: "FinTrack"
+      Jwt__Audience: "FinTrack"
+      Encryption__Key: "dGVzdC1lbmNyeXB0aW9uLWtleS1mb3ItY2ktcGlwZWxpbmUtb25seQ=="
 
     steps:
       # Step 1: Check out your code onto the VM
@@ -26,27 +48,32 @@ jobs:
           dotnet-version: '10.0.x'
 
       # Step 3: Restore NuGet packages
-      # Separate from build so you can see clearly if
-      # a package restore fails vs a compilation failure
       - name: Restore dependencies
         run: dotnet restore
 
       # Step 4: Build the entire solution in Release mode
-      # Release mode catches issues that Debug mode sometimes misses
-      # --no-restore skips restore since we just did it above
       - name: Build
         run: dotnet build --no-restore --configuration Release
 
-      # Step 5: Run all tests
-      # --no-build skips rebuilding since we just built above
+      # Step 5: Install EF Core tools and run migrations
+      # The PostgreSQL service is healthy by this point (health check
+      # in the service definition ensures the DB is ready before steps run)
+      - name: Install EF Core tools
+        run: dotnet tool install --global dotnet-ef --version 10.0.0
+
+      - name: Run database migrations
+        run: |
+          dotnet ef database update \
+            --project src/FinTrack.Infrastructure \
+            --startup-project src/FinTrack.API \
+            --configuration Release
+
+      # Step 6: Run all tests including integration tests
+      # Integration tests connect to the PostgreSQL service above
       - name: Run tests
         run: dotnet test --no-build --configuration Release --verbosity normal
 
-      # Step 6: Check for packages with known vulnerabilities
-      # This is what caught the Newtonsoft.Json issue earlier
-      # --vulnerable flag filters to only show vulnerable packages
-      # If any high severity vulnerability exists, we want the
-      # pipeline to fail — hence the exit code check
+      # Step 7: Check for packages with known vulnerabilities
       - name: Check for vulnerable packages
         run: |
           dotnet list package --vulnerable --include-transitive 2>&1 | tee vulnerable.txt
