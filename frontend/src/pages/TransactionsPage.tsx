@@ -1,3 +1,4 @@
+import AppLayout from '@/components/layout/AppLayout'
 export default function TransactionsPage() {
-    return <div className="p-8"><h1 className="text-2xl font-semibold">Transactions</h1></div>
+    return <AppLayout><div className="p-8"><h2 className="text-2xl font-semibold text-gray-900">Transactions</h2></div></AppLayout>
 }

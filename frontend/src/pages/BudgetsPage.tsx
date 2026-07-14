@@ -1,3 +1,4 @@
+import AppLayout from '@/components/layout/AppLayout'
 export default function BudgetsPage() {
-    return <div className="p-8"><h1 className="text-2xl font-semibold">Budgets</h1></div>
+    return <AppLayout><div className="p-8"><h2 className="text-2xl font-semibold text-gray-900">Budgets</h2></div></AppLayout>
 }
