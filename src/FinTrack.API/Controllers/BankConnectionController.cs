@@ -15,10 +15,12 @@ namespace FinTrack.API.Controllers;
 public class BankConnectionsController : ControllerBase
 {
     private readonly IMediator _mediator;
+    private readonly IConfiguration _configuration;
 
-    public BankConnectionsController(IMediator mediator)
+    public BankConnectionsController(IMediator mediator, IConfiguration configuration)
     {
         _mediator = mediator;
+        _configuration = configuration;
     }
 
     /// <summary>
@@ -59,22 +61,23 @@ public class BankConnectionsController : ControllerBase
     /// <param name="state">The state parameter echoed from the initiate call.</param>
     [HttpGet("callback")]
     [AllowAnonymous]
-    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status302Found)]
     public async Task<IActionResult> Callback(
         [FromQuery] string code,
         [FromQuery] string state,
         CancellationToken cancellationToken)
     {
+        var frontendBaseUrl = _configuration["FrontendBaseUrl"] ?? "http://localhost:5173";
+
         if (string.IsNullOrEmpty(code))
-            return BadRequest("Missing authorisation code from TrueLayer.");
+            return Redirect($"{frontendBaseUrl}/accounts?error=missing_code");
 
         var result = await _mediator.Send(
             new CompleteConnectionCommand(code, state), cancellationToken);
 
         if (result.IsFailure)
-            return BadRequest(result.Error);
+            return Redirect($"{frontendBaseUrl}/accounts?error=connection_failed");
 
-        return Ok(new { bankConnectionId = result.Value });
+        return Redirect($"{frontendBaseUrl}/accounts?connected={result.Value}");
     }
 }

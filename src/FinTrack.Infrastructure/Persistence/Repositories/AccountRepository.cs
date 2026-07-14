@@ -23,10 +23,17 @@ public class AccountRepository : IAccountRepository
 
     public async Task<Account?> GetByExternalAccountIdAsync(
         string externalAccountId,
+        Guid userId,
         CancellationToken cancellationToken = default)
     {
+        // Scoped to userId — TrueLayer's sandbox mock provider returns the
+        // same fixed external account ids for every connection, so matching
+        // on externalAccountId alone would attach one user's mock accounts
+        // to whichever other user connects next.
         return await _context.Accounts
-            .FirstOrDefaultAsync(a => a.ExternalAccountId == externalAccountId, cancellationToken);
+            .FirstOrDefaultAsync(a =>
+                a.ExternalAccountId == externalAccountId && a.UserId == userId,
+                cancellationToken);
     }
 
     public async Task<IReadOnlyList<Account>> GetByUserIdAsync(
