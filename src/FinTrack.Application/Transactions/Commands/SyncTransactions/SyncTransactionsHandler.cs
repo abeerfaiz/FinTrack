@@ -120,7 +120,7 @@ public class SyncTransactionsHandler
         {
             var account = await _accountRepository
                 .GetByExternalAccountIdAsync(
-                    obAccount.ExternalAccountId, cancellationToken);
+                    obAccount.ExternalAccountId, connection.UserId, cancellationToken);
 
             if (account is null)
             {
