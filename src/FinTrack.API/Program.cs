@@ -17,6 +17,20 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// In production, load secrets from Azure Key Vault using Managed Identity.
+// No credentials needed — the App Service's system-assigned identity
+// authenticates automatically. Zero secrets in source control.
+if (builder.Environment.IsProduction())
+{
+    var keyVaultUri = builder.Configuration["KeyVaultUri"]
+        ?? throw new InvalidOperationException(
+            "KeyVaultUri is not configured.");
+
+    builder.Configuration.AddAzureKeyVault(
+        new Uri(keyVaultUri),
+        new Azure.Identity.DefaultAzureCredential());
+}
+
 // ── Serilog ──────────────────────────────────────────────────────────────────
 // Configure Serilog before anything else so startup errors are captured too.
 // ReadFromConfiguration reads sink/level settings from appsettings.json,
