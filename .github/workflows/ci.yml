@@ -89,33 +89,28 @@ jobs:
     name: Deploy to Azure App Service
     runs-on: ubuntu-latest
     needs: build-and-test
-    # Only deploy on push to main — not on PRs or feature branches
-    # This means every merge to main automatically deploys to Azure
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
     steps:
-      # Step 1: Check out code fresh — deploy job runs independently
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Step 2: Install .NET 10 to publish the API
       - name: Setup .NET 10
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
 
-      # Step 3: Publish the API in Release mode
-      # dotnet publish compiles and bundles everything needed to run
-      # the app — DLLs, static files, appsettings.json — into ./publish
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
       - name: Publish API
         run: |
           dotnet publish src/FinTrack.API/FinTrack.API.csproj \
             --configuration Release \
             --output ./publish
 
-      # Step 4: Run migrations against Azure PostgreSQL before deploying
-      # This ensures the schema is up to date before the new code goes live
-      # Uses the real Azure connection string stored in GitHub Secrets
       - name: Install EF Core tools
         run: dotnet tool install --global dotnet-ef --version 10.0.0
 
@@ -128,12 +123,11 @@ jobs:
         env:
           ConnectionStrings__FinTrackDb: ${{ secrets.AZURE_DB_CONNECTION_STRING }}
 
-      # Step 5: Deploy the published output to Azure App Service
-      # AZURE_PUBLISH_PROFILE is the XML publish profile from Azure portal
-      # It contains the deployment credentials for fintrack-api
       - name: Deploy to Azure App Service
         uses: azure/webapps-deploy@v3
         with:
           app-name: fintrack-api
-          publish-profile: ${{ secrets.AZURE_PUBLISH_PROFILE }}
           package: ./publish
+
+      - name: Logout of Azure
+        run: az logout  
