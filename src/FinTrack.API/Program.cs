@@ -198,6 +198,7 @@ app.MapHealthChecks("/health");
 // RecurringJob.AddOrUpdate requires Hangfire's storage to be
 // initialised first.
 JobScheduler.RegisterRecurringJobs(
+    app.Services.GetRequiredService<IRecurringJobManager>(),
     app.Services.GetRequiredService<ILogger<Program>>());
 
 app.Run();
