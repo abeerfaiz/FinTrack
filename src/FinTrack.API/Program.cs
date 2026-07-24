@@ -74,6 +74,20 @@ builder.Services.AddValidatorsFromAssembly(
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy.WithOrigins(
+            "http://localhost:5173",
+            "https://white-pebble-0fb6c5210.7.azurestaticapps.net")
+            .AllowAnyMethod()
+            .AllowAnyHeader()
+            .AllowCredentials();
+    });
+});
+
 // ── Authentication ────────────────────────────────────────────────────────────
 // JWT Bearer auth — validates every incoming token against our secret key.
 // The secret and issuer come from configuration, never from code.
@@ -170,6 +184,7 @@ app.UseSwaggerUI();
 
 app.UseHttpsRedirection();
 
+app.UseCors("AllowFrontend");
 // Authentication before Authorization — you must know who someone is
 // before you can decide what they're allowed to do.
 app.UseAuthentication();
