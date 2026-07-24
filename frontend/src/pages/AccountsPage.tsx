@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Landmark, RefreshCw } from 'lucide-react'
+import { Landmark } from 'lucide-react'
 import AppLayout from '@/components/layout/AppLayout'
 import { getAccounts, initiateConnection } from '@/api/endpoints'
 import type { AccountDto } from '@/types'

@@ -133,7 +133,7 @@ export default function DashboardPage() {
                                         tickFormatter={(v) => `£${v}`}
                                     />
                                     <Tooltip
-                                        formatter={(value: number) => [formatCurrency(value), 'Spend']}
+                                        formatter={(value) => [formatCurrency(Number(value)), 'Spend']}
                                         contentStyle={{
                                             fontSize: 12,
                                             border: '1px solid #e5e7eb',
@@ -189,7 +189,7 @@ export default function DashboardPage() {
                                         }
                                     />
                                     <Tooltip
-                                        formatter={(value: number) => [formatCurrency(value), 'Spend']}
+                                        formatter={(value) => [formatCurrency(Number(value)), 'Spend']}
                                         contentStyle={{
                                             fontSize: 12,
                                             border: '1px solid #e5e7eb',

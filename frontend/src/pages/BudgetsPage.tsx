@@ -169,8 +169,8 @@ export default function BudgetsPage() {
                                         tickFormatter={v => `£${v}`}
                                     />
                                     <Tooltip
-                                        formatter={(value: number, name: string) => [
-                                            formatCurrency(value),
+                                        formatter={(value, name) => [
+                                            formatCurrency(Number(value)),
                                             name === 'budget' ? 'Budget' : 'Spent',
                                         ]}
                                         contentStyle={{
