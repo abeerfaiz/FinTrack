@@ -69,11 +69,10 @@ export default function TransactionsPage() {
         if (accounts.length === 0) return
         setSyncing(true)
         try {
-            // Sync all connections — use first account's connection for simplicity
-            // In a full app you'd sync per bank connection
+            const connectionIds = [...new Set(accounts.map(a => a.bankConnectionId))]
             await Promise.all(
-                accounts.map(a =>
-                    syncTransactions(a.id).catch(() => null)
+                connectionIds.map(id =>
+                    syncTransactions(id).catch(() => null)
                 )
             )
             await loadTransactions()

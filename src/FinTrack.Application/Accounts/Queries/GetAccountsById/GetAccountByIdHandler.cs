@@ -41,6 +41,7 @@ public class GetAccountByIdHandler
 
         return Result.Success(new AccountDto(
             Id: account.Id,
+            BankConnectionId: account.BankConnectionId,
             ExternalAccountId: account.ExternalAccountId,
             DisplayName: account.DisplayName,
             AccountType: account.AccountType.ToString(),

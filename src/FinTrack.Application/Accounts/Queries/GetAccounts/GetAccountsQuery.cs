@@ -7,6 +7,7 @@ public record GetAccountsQuery : IRequest<Result<IReadOnlyList<AccountDto>>>;
 
 public record AccountDto(
     Guid Id,
+    Guid BankConnectionId,
     string ExternalAccountId,
     string DisplayName,
     string AccountType,

@@ -1,5 +1,6 @@
 export interface AccountDto {
     id: string
+    bankConnectionId: string
     externalAccountId: string
     displayName: string
     accountType: string

@@ -30,6 +30,7 @@ public class GetAccountsHandler
 
         var dtos = accounts.Select(a => new AccountDto(
             Id: a.Id,
+            BankConnectionId: a.BankConnectionId,
             ExternalAccountId: a.ExternalAccountId,
             DisplayName: a.DisplayName,
             AccountType: a.AccountType.ToString(),
