@@ -36,6 +36,20 @@ public class AccountRepository : IAccountRepository
                 cancellationToken);
     }
 
+    public async Task<Account?> GetByExternalAccountIdAsync(
+        string externalAccountId,
+        CancellationToken cancellationToken = default)
+    {
+        // Unscoped lookup — external_account_id is globally unique
+        // (ix_accounts_external_account_id). Used as a fallback before
+        // insert so a re-sync updates the existing row instead of
+        // hitting that unique constraint.
+        return await _context.Accounts
+            .FirstOrDefaultAsync(a =>
+                a.ExternalAccountId == externalAccountId,
+                cancellationToken);
+    }
+
     public async Task<IReadOnlyList<Account>> GetByUserIdAsync(
         Guid userId,
         CancellationToken cancellationToken = default)

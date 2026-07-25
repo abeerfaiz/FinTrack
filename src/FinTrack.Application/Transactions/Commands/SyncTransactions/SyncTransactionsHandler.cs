@@ -122,6 +122,12 @@ public class SyncTransactionsHandler
                 .GetByExternalAccountIdAsync(
                     obAccount.ExternalAccountId, connection.UserId, cancellationToken);
 
+            // external_account_id is globally unique (ix_accounts_external_account_id).
+            // Fall back to an unscoped lookup before inserting so a re-sync
+            // updates the existing row instead of hitting that constraint.
+            account ??= await _accountRepository
+                .GetByExternalAccountIdAsync(obAccount.ExternalAccountId, cancellationToken);
+
             if (account is null)
             {
                 if (!Enum.TryParse<AccountType>(
@@ -143,6 +149,10 @@ public class SyncTransactionsHandler
                     swiftBic: obAccount.SwiftBic);
 
                 await _accountRepository.AddAsync(account, cancellationToken);
+            }
+            else
+            {
+                _accountRepository.Update(account);
             }
 
             // Fetch and update balance — failure here must not abort sync
