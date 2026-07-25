@@ -1,5 +1,7 @@
 using FinTrack.Application.BankConnections.Commands.CompleteConnection;
 using FinTrack.Application.BankConnections.Commands.InitiateConnection;
+using FinTrack.Infrastructure.BackgroundJobs;
+using Hangfire;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -77,6 +79,9 @@ public class BankConnectionsController : ControllerBase
 
         if (result.IsFailure)
             return Redirect($"{frontendBaseUrl}/accounts?error=connection_failed");
+
+        BackgroundJob.Enqueue<TransactionSyncJob>(
+            job => job.ExecuteAsync(CancellationToken.None));
 
         return Redirect($"{frontendBaseUrl}/accounts?connected={result.Value}");
     }
