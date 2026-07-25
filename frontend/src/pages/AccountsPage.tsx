@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Landmark } from 'lucide-react'
 import AppLayout from '@/components/layout/AppLayout'
-import { getAccounts, initiateConnection } from '@/api/endpoints'
+import { getAccounts, initiateConnection, syncTransactions } from '@/api/endpoints'
 import type { AccountDto } from '@/types'
 import { formatCurrency, formatDate } from '@/lib/utils'
 
@@ -25,8 +25,27 @@ export default function AccountsPage() {
         if (error) {
             setBanner({ type: 'error', message: 'Failed to connect your bank account. Please try again.' })
         } else if (connected) {
-            setBanner({ type: 'success', message: 'Bank account connected successfully.' })
-            getAccounts().then(res => setAccounts(res.data))
+            setBanner({ type: 'success', message: 'Bank connected! Syncing your accounts...' })
+
+            // Trigger sync then fetch accounts
+            syncTransactions(connected)
+                .then(() => getAccounts())
+                .then(res => {
+                    setAccounts(res.data)
+                    setBanner({
+                        type: 'success',
+                        message: `Bank connected! ${res.data.length} account${res.data.length !== 1 ? 's' : ''} synced successfully.`
+                    })
+                })
+                .catch(() => {
+                    // Sync timed out — Hangfire will complete it in background
+                    setBanner({
+                        type: 'success',
+                        message: 'Bank connected! Your accounts will appear shortly as we sync your data.'
+                    })
+                    // Still try to fetch accounts in case partial sync worked
+                    getAccounts().then(res => setAccounts(res.data))
+                })
         }
 
         if (error || connected) {
