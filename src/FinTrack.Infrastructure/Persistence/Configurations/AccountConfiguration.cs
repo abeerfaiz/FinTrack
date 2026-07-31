@@ -15,7 +15,9 @@ public class AccountConfiguration : IEntityTypeConfiguration<Account>
         // Idempotency guarantee for account sync, same pattern as
         // Transaction.ExternalTxId — prevents duplicate account rows
         // if the sync job re-processes the same TrueLayer account.
-        builder.HasIndex(a => a.ExternalAccountId)
+        // Scoped per user (not globally unique) since sandbox/test
+        // providers can reuse the same external_account_id across users.
+        builder.HasIndex(a => new { a.ExternalAccountId, a.UserId })
             .IsUnique();
 
         builder.Property(a => a.ExternalAccountId)
