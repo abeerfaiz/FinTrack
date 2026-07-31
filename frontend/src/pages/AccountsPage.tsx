@@ -30,7 +30,7 @@ export default function AccountsPage() {
                 message: 'Bank connected! Syncing your accounts in the background...'
             })
 
-            // Poll for accounts every 5 seconds for up to 2 minutes
+            // Poll for accounts every 5 seconds for up to 5 minutes
             // Hangfire is syncing in the background
             let attempts = 0
             const poll = setInterval(async () => {
@@ -43,18 +43,22 @@ export default function AccountsPage() {
                         message: `Bank connected! ${res.data.length} account${res.data.length !== 1 ? 's' : ''} synced successfully.`
                     })
                     clearInterval(poll)
-                } else if (attempts >= 24) {
-                    // Stop polling after 2 minutes
+                } else if (attempts >= 60) {
+                    // Stop polling after 5 minutes
                     clearInterval(poll)
                     setBanner({
                         type: 'success',
-                        message: 'Bank connected! Your accounts will appear shortly — refresh the page in a few minutes.'
+                        message: 'Bank connected! Your accounts are taking longer than expected to sync — please refresh the page in a few minutes.'
                     })
                 }
             }, 5000)
+
+            window.history.replaceState({}, '', window.location.pathname)
+
+            return () => clearInterval(poll)
         }
 
-        if (error || connected) {
+        if (error) {
             window.history.replaceState({}, '', window.location.pathname)
         }
     }, [])
