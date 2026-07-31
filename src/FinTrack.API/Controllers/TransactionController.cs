@@ -1,6 +1,8 @@
 using FinTrack.Application.Transactions.Commands.CategoriseTransaction;
 using FinTrack.Application.Transactions.Commands.SyncTransactions;
 using FinTrack.Application.Transactions.Queries.GetTransactions;
+using FinTrack.Infrastructure.BackgroundJobs;
+using Hangfire;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -76,18 +78,14 @@ public class TransactionsController : ControllerBase
     [ProducesResponseType(typeof(SyncTransactionsResult), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> Sync(
+    public IActionResult Sync(
         Guid bankConnectionId,
         CancellationToken cancellationToken)
     {
-        var result = await _mediator.Send(
-            new SyncTransactionsCommand(bankConnectionId),
-            cancellationToken);
+        BackgroundJob.Enqueue<TransactionSyncJob>(
+            job => job.ExecuteAsync(CancellationToken.None));
 
-        if (result.IsFailure)
-            return BadRequest(result.Error);
-
-        return Ok(result.Value);
+        return Ok(new { message = "Sync queued. Transactions will appear within a few minutes." });
     }
 
     /// <summary>
