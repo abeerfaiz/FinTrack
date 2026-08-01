@@ -3,6 +3,7 @@ import type {
     AccountDto,
     BudgetSummaryDto,
     CategoryDto,
+    CategoryRuleDto,
     CategorySpendingDto,
     LoginResult,
     MonthlySpendDto,
@@ -45,6 +46,15 @@ export const getCategories = () =>
 
 export const createCategory = (name: string, colourHex: string, icon: string) =>
     client.post<{ id: string }>('/categories', { name, colourHex, icon })
+
+export const getCategoryRules = () =>
+    client.get<CategoryRuleDto[]>('/categories/rules')
+
+export const createCategoryRule = (categoryId: string, keyword: string, priority: number) =>
+    client.post<{ id: string }>('/categories/rules', { categoryId, keyword, priority })
+
+export const deleteCategoryRule = (ruleId: string) =>
+    client.delete(`/categories/rules/${ruleId}`)
 
 // Budgets
 export const getBudgetSummary = (year: number, month: number) =>

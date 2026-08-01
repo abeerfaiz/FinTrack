@@ -8,6 +8,8 @@ public interface ICategoryRuleRepository
         Guid userId,
         CancellationToken cancellationToken = default);
 
+    Task<CategoryRule?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
+
     Task AddAsync(CategoryRule rule, CancellationToken cancellationToken = default);
 
     void Update(CategoryRule rule);

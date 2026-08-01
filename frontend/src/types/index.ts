@@ -53,6 +53,14 @@ export interface CategoryDto {
     isSystem: boolean
 }
 
+export interface CategoryRuleDto {
+    id: string
+    categoryId: string
+    categoryName: string
+    keyword: string
+    priority: number
+}
+
 export interface BudgetSummaryDto {
     budgetId: string
     categoryId: string

@@ -1,6 +1,8 @@
 using FinTrack.Application.Categories.Commands.CreateCategory;
 using FinTrack.Application.Categories.Commands.DeleteCategory;
+using FinTrack.Application.Categories.Commands.DeleteCategoryRule;
 using FinTrack.Application.Categories.Queries.GetCategories;
+using FinTrack.Application.Categories.Queries.GetCategoryRules;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -73,6 +75,25 @@ public class CategoriesController : ControllerBase
     }
 
     /// <summary>
+    /// Get all category rules for the authenticated user.
+    /// </summary>
+    /// <remarks>
+    /// Returns rules ordered by priority ascending (lowest number = highest priority).
+    /// </remarks>
+    [HttpGet("rules")]
+    [ProducesResponseType(typeof(IReadOnlyList<CategoryRuleDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GetRules(CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(new GetCategoryRulesQuery(), cancellationToken);
+
+        if (result.IsFailure)
+            return BadRequest(result.Error);
+
+        return Ok(result.Value);
+    }
+
+    /// <summary>
     /// Create a category rule for auto-categorisation.
     /// </summary>
     /// <remarks>
@@ -95,6 +116,29 @@ public class CategoriesController : ControllerBase
             return BadRequest(result.Error);
 
         return Ok(new { id = result.Value });
+    }
+
+    /// <summary>
+    /// Delete a category rule.
+    /// </summary>
+    /// <remarks>
+    /// Users can only delete their own category rules — enforced via IDOR check.
+    /// </remarks>
+    [HttpDelete("rules/{ruleId}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DeleteRule(
+        Guid ruleId,
+        CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(
+            new DeleteCategoryRuleCommand(ruleId), cancellationToken);
+
+        if (result.IsFailure)
+            return BadRequest(result.Error);
+
+        return NoContent();
     }
 
     /// <summary>

@@ -25,6 +25,14 @@ public class CategoryRuleRepository : ICategoryRuleRepository
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<CategoryRule?> GetByIdAsync(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        return await _context.CategoryRules
+            .FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
+    }
+
     public async Task AddAsync(
         CategoryRule rule,
         CancellationToken cancellationToken = default)
