@@ -13,23 +13,23 @@ public class CompleteConnectionHandler
     private readonly IOpenBankingClient _openBankingClient;
     private readonly ITokenEncryptionService _tokenEncryptionService;
     private readonly IBankConnectionRepository _bankConnectionRepository;
-    //private readonly ICurrentUserService _currentUserService;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IOAuthStateService _oAuthStateService;
     private readonly ILogger<CompleteConnectionHandler> _logger;
 
     public CompleteConnectionHandler(
         IOpenBankingClient openBankingClient,
         ITokenEncryptionService tokenEncryptionService,
         IBankConnectionRepository bankConnectionRepository,
-        //ICurrentUserService currentUserService,
         IUnitOfWork unitOfWork,
+        IOAuthStateService oAuthStateService,
         ILogger<CompleteConnectionHandler> logger)
     {
         _openBankingClient = openBankingClient;
         _tokenEncryptionService = tokenEncryptionService;
         _bankConnectionRepository = bankConnectionRepository;
-        //_currentUserService = currentUserService;
         _unitOfWork = unitOfWork;
+        _oAuthStateService = oAuthStateService;
         _logger = logger;
     }
 
@@ -37,11 +37,22 @@ public class CompleteConnectionHandler
     CompleteConnectionCommand request,
     CancellationToken cancellationToken)
     {
-        // Temporary: extract userId from state parameter.
-        // In production this comes from ICurrentUserService (JWT claim).
+        // state = userId:randomPart:hmac
+        // The HMAC is verified below before the userId is trusted —
+        // without it, this AllowAnonymous endpoint would let anyone
+        // hand-craft a state naming another user's userId.
         var stateParts = request.State.Split(':');
-        if (stateParts.Length < 2 || !Guid.TryParse(stateParts[0], out var userId))
+        if (stateParts.Length != 3 || !Guid.TryParse(stateParts[0], out var userId))
             return Result.Failure<Guid>("Invalid state parameter.");
+
+        var statePayload = $"{stateParts[0]}:{stateParts[1]}";
+        var providedSignature = stateParts[2];
+
+        if (!_oAuthStateService.Verify(statePayload, providedSignature))
+        {
+            _logger.LogWarning("Bank connection callback rejected: state signature mismatch.");
+            return Result.Failure<Guid>("Invalid state parameter.");
+        }
 
         var tokenResult = await _openBankingClient
             .ExchangeAuthCodeAsync(request.Code, cancellationToken);

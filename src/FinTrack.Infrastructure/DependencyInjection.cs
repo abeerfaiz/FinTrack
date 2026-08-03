@@ -132,6 +132,10 @@ public static class DependencyInjection
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddSingleton<IJwtService, JwtService>();
 
+        // OAuth state signing — Singleton is safe here, same reasoning
+        // as ITokenEncryptionService: holds only an immutable key string.
+        services.AddSingleton<IOAuthStateService, OAuthStateService>();
+
         return services;
     }
 }

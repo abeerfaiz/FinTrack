@@ -1,8 +1,7 @@
+using FinTrack.Application.Common.Interfaces;
 using FinTrack.Application.Transactions.Commands.CategoriseTransaction;
 using FinTrack.Application.Transactions.Commands.SyncTransactions;
 using FinTrack.Application.Transactions.Queries.GetTransactions;
-using FinTrack.Infrastructure.BackgroundJobs;
-using Hangfire;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -19,10 +18,12 @@ namespace FinTrack.API.Controllers;
 public class TransactionsController : ControllerBase
 {
     private readonly IMediator _mediator;
+    private readonly ICurrentUserService _currentUserService;
 
-    public TransactionsController(IMediator mediator)
+    public TransactionsController(IMediator mediator, ICurrentUserService currentUserService)
     {
         _mediator = mediator;
+        _currentUserService = currentUserService;
     }
 
     /// <summary>
@@ -78,14 +79,20 @@ public class TransactionsController : ControllerBase
     [ProducesResponseType(typeof(SyncTransactionsResult), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public IActionResult Sync(
+    public async Task<IActionResult> Sync(
         Guid bankConnectionId,
         CancellationToken cancellationToken)
     {
-        BackgroundJob.Enqueue<TransactionSyncJob>(
-            job => job.ExecuteAsync(CancellationToken.None));
+        var userId = _currentUserService.GetCurrentUserId();
 
-        return Ok(new { message = "Sync queued. Transactions will appear within a few minutes." });
+        var result = await _mediator.Send(
+            new SyncTransactionsCommand(bankConnectionId, userId),
+            cancellationToken);
+
+        if (result.IsFailure)
+            return BadRequest(result.Error);
+
+        return Ok(result.Value);
     }
 
     /// <summary>

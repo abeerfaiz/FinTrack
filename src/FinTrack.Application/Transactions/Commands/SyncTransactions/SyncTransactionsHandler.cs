@@ -53,6 +53,18 @@ public class SyncTransactionsHandler
             throw new EntityNotFoundException(
                 nameof(BankConnection), request.BankConnectionId);
 
+        // Ownership check — only enforced when a specific user requested
+        // this sync (e.g. the manual on-demand endpoint). RequestingUserId
+        // is null when the trusted internal Hangfire job calls this for
+        // every active connection across all users — that's by design,
+        // not a caller impersonating someone else.
+        if (request.RequestingUserId.HasValue
+            && connection.UserId != request.RequestingUserId.Value)
+        {
+            return Result.Failure<SyncTransactionsResult>(
+                "You do not have permission to sync this bank connection.");
+        }
+
         if (connection.Status != BankConnectionStatus.Active)
             return Result.Failure<SyncTransactionsResult>(
                 $"Bank connection {request.BankConnectionId} is not active " +
