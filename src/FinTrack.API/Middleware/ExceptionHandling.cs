@@ -57,7 +57,8 @@ public class ExceptionHandlingMiddleware
         catch (EntityNotFoundException ex)
         {
             // Queried something that doesn't exist — 404.
-            _logger.LogWarning(ex.Message);
+            _logger.LogWarning("Entity not found: {ExceptionType} — {Message}",
+                ex.GetType().Name, ex.Message);
 
             context.Response.StatusCode = (int)HttpStatusCode.NotFound;
             context.Response.ContentType = "application/json";
@@ -71,7 +72,8 @@ public class ExceptionHandlingMiddleware
         catch (UnauthorizedAccessException ex)
         {
             // Missing or invalid JWT claim — 401.
-            _logger.LogWarning(ex.Message);
+            _logger.LogWarning("Unauthorised access attempt: {ExceptionType} — {Message}",
+                ex.GetType().Name, ex.Message);
 
             context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
             context.Response.ContentType = "application/json";
@@ -89,7 +91,8 @@ public class ExceptionHandlingMiddleware
             // rather than 400, because this isn't a validation failure —
             // the request was syntactically valid but semantically wrong
             // at the business rule level.
-            _logger.LogWarning(ex.Message);
+            _logger.LogWarning("Domain invariant violated: {ExceptionType} — {Message}",
+                ex.GetType().Name, ex.Message);
 
             context.Response.StatusCode = (int)HttpStatusCode.UnprocessableEntity;
             context.Response.ContentType = "application/json";
