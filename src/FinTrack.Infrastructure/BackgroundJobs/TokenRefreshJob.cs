@@ -52,6 +52,15 @@ public class TokenRefreshJob
 
         foreach (var connection in expiringSoon)
         {
+            if (connection.IsConsentExpired())
+            {
+                _logger.LogWarning(
+                    "Bank connection {ConnectionId} has an expired PSD2 consent " +
+                    "(created {ConsentCreatedAt}); user should be prompted to re-authorise",
+                    connection.Id,
+                    connection.ConsentCreatedAt);
+            }
+
             try
             {
                 var refreshToken = _tokenEncryptionService

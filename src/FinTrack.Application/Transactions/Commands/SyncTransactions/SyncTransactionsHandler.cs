@@ -70,6 +70,19 @@ public class SyncTransactionsHandler
                 $"Bank connection {request.BankConnectionId} is not active " +
                 $"(status: {connection.Status}). User must re-authorise.");
 
+        // PSD2 requires re-consent every 90 days. This doesn't block the
+        // sync — TrueLayer will reject the token itself if consent has
+        // truly lapsed — but it surfaces the looming expiry in logs
+        // instead of only finding out when a sync starts failing.
+        if (connection.IsConsentExpired())
+        {
+            _logger.LogWarning(
+                "Bank connection {ConnectionId} has an expired PSD2 consent " +
+                "(created {ConsentCreatedAt}); user should be prompted to re-authorise",
+                request.BankConnectionId,
+                connection.ConsentCreatedAt);
+        }
+
         // ── Step 2: Decrypt access token ──────────────────────────────────
         string accessToken;
         try

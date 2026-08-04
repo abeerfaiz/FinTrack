@@ -192,6 +192,14 @@ app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseSwagger();
 app.UseSwaggerUI();
 
+// HSTS tells browsers to only ever talk to us over HTTPS going forward,
+// closing the brief plaintext window a client can hit before the
+// redirect below takes effect. Skipped in development since the local
+// HTTPS dev cert isn't in every browser's trust store.
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHsts();
+}
 
 app.UseHttpsRedirection();
 
