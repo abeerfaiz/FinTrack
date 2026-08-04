@@ -5,6 +5,7 @@ using Hangfire;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace FinTrack.API.Controllers;
 
@@ -63,6 +64,7 @@ public class BankConnectionsController : ControllerBase
     /// <param name="state">The state parameter echoed from the initiate call.</param>
     [HttpGet("callback")]
     [AllowAnonymous]
+    [EnableRateLimiting("auth")]
     [ProducesResponseType(StatusCodes.Status302Found)]
     public async Task<IActionResult> Callback(
         [FromQuery] string code,

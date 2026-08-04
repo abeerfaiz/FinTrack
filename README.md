@@ -175,3 +175,6 @@ dotnet test
 - Multi-currency support beyond GBP
 - Containerise the API for consistent local/prod parity (currently Postgres-only via Docker)
 - Expand integration test coverage beyond the repository layer
+- Swagger UI is exposed unconditionally, including in production — intentional for this portfolio demo so the API surface is easy to explore; would be gated behind `IsDevelopment()` (or require auth) for a real production deployment
+- `User.IsRefreshTokenValid` compares the SHA-256 refresh-token hash with `==` rather than a constant-time comparison. Low practical risk since it runs after an indexed DB lookup already narrowed to one row, but should use `CryptographicOperations.FixedTimeEquals` for defense-in-depth, consistent with `OAuthStateSigner.Verify`
+- `BudgetsController.DeleteBudget` is a stub that returns `204 NoContent` without any deletion logic or ownership check — needs to be wired up to a real `DeleteBudgetCommand`/handler, or removed until implemented

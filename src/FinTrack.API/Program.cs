@@ -167,6 +167,17 @@ builder.Services.AddRateLimiter(options =>
         config.QueueLimit = 0;
     });
 
+    // Sync triggers outbound TrueLayer API calls per account — throttled
+    // to 1 request per minute per IP to prevent abuse driving up TrueLayer
+    // usage/cost and DB load.
+    options.AddFixedWindowLimiter("sync", config =>
+    {
+        config.PermitLimit = 1;
+        config.Window = TimeSpan.FromSeconds(60);
+        config.QueueProcessingOrder = System.Threading.RateLimiting.QueueProcessingOrder.OldestFirst;
+        config.QueueLimit = 0;
+    });
+
     options.RejectionStatusCode = 429;
 });
 

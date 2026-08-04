@@ -5,6 +5,7 @@ using FinTrack.Application.Transactions.Queries.GetTransactions;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace FinTrack.API.Controllers;
 
@@ -76,9 +77,11 @@ public class TransactionsController : ControllerBase
     /// </remarks>
     /// <param name="bankConnectionId">The ID of the bank connection to sync.</param>
     [HttpPost("sync/{bankConnectionId}")]
+    [EnableRateLimiting("sync")]
     [ProducesResponseType(typeof(SyncTransactionsResult), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     public async Task<IActionResult> Sync(
         Guid bankConnectionId,
         CancellationToken cancellationToken)
